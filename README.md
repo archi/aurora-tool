@@ -21,7 +21,7 @@ Additionally, I'd like to write a small HTML/JS app that takes the modell and di
 
 This is written in Perl on Linux. But if you're on Windows, I suppose this should run with StrawberryPerl (I'll give it a try, but not today).
 
-I plan to have this buildable with some windows-executable builder like PAR/pp (see https://metacpan.org/pod/pp), so I/we can easily distribute it to Windows users who lack the technical background for running this via the command line.
+I plan to have this buildable with some windows-executable builder like PAR/pp (see https://metacpan.org/pod/pp), so I/we can easily distribute it to Windows users who lack the technical background for running this via the command line (also, the... lovely... SigmaStudio doesn't run on Linux, so I'm stuck with Windows as well).
 I will try this sooner than later. Worst case I might realize this doesn't work with Perl GUI applications (I've never used that part), in which case the GUI will needs to be done in Qt/C++.
 
 For now, run 'perl convert.pl --help' to see the usage.

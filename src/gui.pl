@@ -203,5 +203,11 @@ mkLabel('red', join("\n",
         'I am not responsible for any damage caused by this software or its output!',
     ));
 
+my $parameter = shift;
+if (defined $parameter and $parameter eq "--version") {
+    print $version;
+    exit 0;
+}
+
 print "This is aurora-tool GUI v$version\n";
 MainLoop();

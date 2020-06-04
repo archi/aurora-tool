@@ -105,8 +105,6 @@ sub build {
     glob $output_dir;
     glob $params_file;
     glob $main;
-    print "params_file=", (defined $params_file ? $params_file: 'undef'), "\n";
-    print "output_dir=", (defined $output_dir ? $output_dir : 'undef'), "\n";
 
     if (not defined $output_dir or not defined $params_file) {
         errorBox('Please specify all necessary parameters!');
@@ -116,8 +114,6 @@ sub build {
     my $input_dir = $params_file;
     $input_dir =~ s@([^/\\]*)\.params$@@;
     my $project_name = $1;
-    print "input_dir=$input_dir\n";
-    print "project_name=$project_name\n";
 
     my $driver = Driver::create($input_dir, $output_dir, $project_name);
     if ($driver->hasErrors()) {
@@ -207,4 +203,5 @@ mkLabel('red', join("\n",
         'I am not responsible for any damage caused by this software or its output!',
     ));
 
+print "This is aurora-tool GUI v$version\n";
 MainLoop();

@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl -w
 
 package main;
 use strict;
@@ -22,10 +22,8 @@ our $sep = "/";
 use Getopt::Std;
 use Getopt::Long;
 
-# Additional local modules
-use ParseParams;
-use WritePluginIni;
-use Assembler;
+# Only needs the driver
+use Driver;
 
 # Get & check parameters
 my $input_dir = undef;
@@ -43,7 +41,7 @@ GetOptions (
 
 # help takes precedence
 if ($help) {
-    print "aurora plugin converter\n",
+    print "aurora plugin converter for the cli\n",
           "\n",
           "Usage: $0 --in [sigma_studio_export_dir]\n",
           "\n",
@@ -54,96 +52,17 @@ if ($help) {
     exit 0;
 }
 
-# ensure we have a trailing /
-$input_dir =~ s@[/\\]*$@@ if defined $input_dir;
-$input_dir .= $sep if defined $input_dir;
-$output_dir =~ s@[/\\]*$@@ if defined $output_dir;
-$output_dir .= $sep if defined $output_dir;
+my $driver = Driver::create($input_dir, $output_dir, $project_name);
 
-#
-# Check the input dir (output dir is checked after reading, so it can be omitted for debugging)
-#
-my $bad = 0;
-if (not defined $input_dir) {
-    $bad++;
-    print STDERR "Missing input directory (pass via --in)!\n";
-} elsif (not -d $input_dir) {
-    $bad++;
-    print STDERR "Input directory '$input_dir' does not exist\n";
-} elsif (not defined $project_name) {
-    # Find the project name, if not defined
-    my $multi = 0;
-    while (my $file = <$input_dir*.params>) {
-        $file =~ m@([^/\\]*)\.params$@;
-        $file = $1;
-        if (defined $project_name) {
-            print STDERR "Input directory contains multiple .param-files, please use the --project parameter to select one! Found:\n" if $multi == 0;
-            print STDERR " - $project_name\n" if $multi == 0;
-            print STDERR " - $file\n";
-            $multi = 1;
-            $bad++;
-        }
-        $project_name = $file;
-    }
-    if (not defined $project_name) {
-        print STDERR "Input directory does not seem to contain a project (no .params file found)\n";
-        $bad++;
-    }
+if (not $driver->hasErrors()) {
+    $driver->doEverything();
 }
 
-# Check for the necessary files:
-if ($bad == 0) {
-    foreach my $req_file ("${project_name}_NetList.xml", "$project_name.params", "NumBytes_IC_1.dat", "TxBuffer_IC_1.dat") {
-        next if -f "$input_dir$req_file";
-        $bad++;
-        print STDERR "Missing file '$input_dir$req_file'\n";
-    }
-}
-
-# And we're done with parameter checking
-if ($bad > 0) {
-    print STDERR "Abortung due to errors :(\n";
+if ($driver->hasErrors()) {
+    print STDERR join("\n", @{$driver->{errorStrings}});
+    print STDERR "\n\nUse --help to get help.\n";
     exit 1;
 }
-
-# Let the user know we've found all we need
-print "Selected project '$input_dir$project_name' seems to contain all necessary files :)\n\n";
-
-# Next up: Parse the params and XML file
-# The code for these live in the lib/ dir, this is just the driver
-
-my $params = ParseParams::parse($input_dir . $project_name . ".params");
-exit 1 if not defined $params;
-
-# TODO parse NetList.xml
-
-# TODO build model and so on
-
-#
-# Check the output dir:
-#
-if (not defined $output_dir) {
-    print STDERR "Missing output dir, pass via --out!\n";
-    exit 1;
-} elsif (not -d $output_dir) {
-    print STDERR "Output directory '$output_dir' does not exist!\n";
-    exit 1;
-}
-
-# assemble dsp.fw
-if (Assembler::assemble($input_dir, $output_dir."dsp.fw")) {
-    print "Assembled '${output_dir}dsp.fw'\n";
-} else {
-    exit 1;
-}
-
-# Write the plugin.ini
-if (WritePluginIni::write($output_dir . "plugin.ini", $params)) {
-    print "Wrote '${output_dir}plugin.ini'\n";
-} else {
-    exit 1;
-}
-
 
 print "\nScript finished without detected errors. Remember to ALWAYS review the output."; 
 print "This script (and the result) come with no warranty for correctness. If this kills your speakers or DSP, it is your fault for not properly reviewing the output!\n";

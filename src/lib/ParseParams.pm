@@ -30,7 +30,6 @@ sub parse {
         $param =~ s/\s*$//g;
         $data{$key} = $key eq "address" ? int($param) : $param;
         if ($key eq "cell_name") {
-            #print "cell_name = $param\n";
             foreach my $ptrn (@name_to_handler_ptrns) {
                 if ($param =~ m/^$ptrn$/) {
                     $data{_handler} = $name_to_handler{$ptrn};

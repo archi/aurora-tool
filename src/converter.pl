@@ -15,9 +15,6 @@ BEGIN {
 }
 use lib $lib_path;
 
-# Windows vs Linux dir separator (mostly for printing)
-our $sep = "/";
-
 # Additional global modules
 use Getopt::Std;
 use Getopt::Long;

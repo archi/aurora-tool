@@ -7,12 +7,10 @@ use warnings;
 use ParseParams;
 use WritePluginIni;
 use Assembler;
-
-# TODO check OS and pick correct separator
-my $sep = "/";
+use Tools;
 
 sub version {
-    return "0.1";
+    return "0.1-alpha";
 }
 
 sub logError {
@@ -43,7 +41,7 @@ sub create {
         logError(\%self, "Missing input directory!");
     } else {
         $input_dir =~ s@[/\\]*$@@;
-        $input_dir .= $sep;
+        $input_dir .= $Tools::sep;
         if (not -d $input_dir) {
             logError(\%self, "Input directory does not exist!");
         } else {
@@ -56,7 +54,7 @@ sub create {
         logError(\%self, "Missing output directory!");
     } else {
         $output_dir =~ s@[/\\]*$@@;
-        $output_dir .= $sep;
+        $output_dir .= $Tools::sep;
         if (not -d $output_dir) {
             logError(\%self, "Output directory does not exist!");
         } else {

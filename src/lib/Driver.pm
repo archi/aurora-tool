@@ -11,6 +11,10 @@ use Assembler;
 # TODO check OS and pick correct separator
 my $sep = "/";
 
+sub version {
+    return "0.1";
+}
+
 sub logError {
     my $self = shift;
     $self->{errors}++;

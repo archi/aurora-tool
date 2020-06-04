@@ -14,8 +14,8 @@ Not supported:
 Next up is:
 
 0. parsing the NetList.xml, so I can build a model of the Plugin. From that model, I hope to be able to automatically figure out the XOs for the plugin.ini.
-0. Put the Driver code in a module
-0. Build a windows exe without need for a perl installation
+0. use a nicer file selector (the Tk-selector is a visual pain)
+
 
 Additionally, I'd like to write a small HTML/JS app that takes the modell and displays the appropriate DSP controls (and/or generate [part] of that app from the script).
 

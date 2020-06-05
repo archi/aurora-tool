@@ -34,7 +34,7 @@ if ($^O eq "MSWin32") {
 	$exe = $base;
 	$zip_file .= "-linux64.xz";
 	$sep = "/";
-	push @zip, "cJf", $zip_file, $exe;
+	push @zip, "tar", "cJf", $zip_file, $exe;
 	push @pp, "pp";
 }
 

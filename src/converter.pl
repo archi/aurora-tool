@@ -21,6 +21,7 @@ use Getopt::Long;
 
 # Only needs the driver
 use Driver;
+use Tools;
 
 # Get & check parameters
 my $input_dir = undef;
@@ -38,8 +39,8 @@ GetOptions (
 
 # help takes precedence
 if ($help) {
-    my $version = Driver::version();
-    print "aurora-tool v$version, plugin converter for the cli\n",
+    print "aurora-tool v$Tools::version, plugin converter for the cli\n",
+          $Tools::copyright, "\n",
           "\n",
           "Usage: $0 --in <dir> --out <dir> [--project <name>]\n",
           "\n",
@@ -48,7 +49,8 @@ if ($help) {
           "  --out      * Name of the directory in which to put the result files\n",
           "\n",
           "E.g. $0 --in ../../8channel/ --out plugin/ --project 8channel\n",
-          "\n";
+          "\n",
+          "Website: $Tools::url\n";
     exit 0;
 }
 

@@ -9,10 +9,6 @@ use WritePluginIni;
 use Assembler;
 use Tools;
 
-sub version {
-    return "0.1-alpha";
-}
-
 sub logError {
     my $self = shift;
     $self->{errors}++;

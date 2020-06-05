@@ -4,6 +4,9 @@ use strict;
 use warnings;
 
 our $sep = $^O eq "MSWin32" ? "\\" : "/";
+our $version = "0.1.1-alpha";
+our $url = "https://github.com/archi/aurora-tool";
+our $copyright = "(c) 2020 Sebastian 'archi' Meyer, licensed under GPLv3";
 
 # Cell names vary, e.g. in the NetList XML they're "Param EQ 1 ",
 #  and in the .params they're "Param EQ 1".

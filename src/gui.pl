@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use Tk;
 use Tk::FileSelect;
+use File::Path 'make_path';
 
 # Find the library path, and allow loading libs from there
 use Cwd;
@@ -19,15 +20,14 @@ BEGIN {
 use lib $lib_path;
 
 use Driver;
+use Tools;
 
-my $version = Driver::version();
-
-# store user select dirs here
+# store user select dirs here (this will be assigned the Tk input box, not the actual variable!)
 my $params_file = undef;
 my $output_dir = undef;
 
 # Create Main Window
-my $main = MainWindow->new(-title => "aurora-tool GUI v$version");
+my $main = MainWindow->new(-title => "aurora-tool GUI v$Tools::version");
 $main->geometry('+400+400');
 $main->bind('<Escape>' => sub { $main->destroy(); exit 0; });
 
@@ -79,8 +79,6 @@ sub createInput {
     
     $entry = $frame->Entry(
         -width => 40,
-        -background => 'grey',
-        -state => 'disable',
     )->pack(
         -side => 'right',
         -padx => 6,
@@ -88,14 +86,16 @@ sub createInput {
         
     $entry->configure(-foreground => 'black');
 
-    push @gui_elements, $button;
+    push @gui_elements, $button, $entry;
+    return $entry;
 }
 
 sub errorBox {
     my $msg = shift;
     $main->messageBox(
         -title => 'Error',
-        -type => 'ok',
+        -icon => 'error',
+        -type => 'Ok',
         -message => $msg);
     disableAll(0);
 }
@@ -105,19 +105,54 @@ sub build {
     glob $output_dir;
     glob $params_file;
     glob $main;
+    
+    my $output_dir_val = $output_dir->cget('-text');
+    my $params_file_val = $params_file->cget('-text');
+    
+    if (defined $params_file_val) {
+        $params_file_val = undef if $params_file_val =~ m/^\s*$/;
+    }
+    
+    if (defined $output_dir_val) {
+        $output_dir_val = undef if $output_dir_val =~ m/^\s*$/;
+    }
 
-    if (not defined $output_dir or not defined $params_file) {
-        errorBox('Please specify all necessary parameters!');
+    if (not defined $output_dir_val or not defined $params_file_val) {
+        my $msg = 'Please specify all necessary parameters:';
+        $msg .= "\nMissing the SigmaStudio Export." if not defined $params_file_val;
+        $msg .= "\nMissing output directory" if not defined $output_dir_val;
+        errorBox($msg);
         return;
     }
 
-    my $input_dir = $params_file;
+    my $input_dir = $params_file_val;
     $input_dir =~ s@([^/\\]*)\.params$@@;
     my $project_name = $1;
+    
+    if (not -d $output_dir_val) {
+        my $answer = $main->messageBox(
+            -title => 'Warning',
+            -icon => 'question',
+            -type => 'OkCancel',
+            -message => 'The output directory does not exist, should it be created?',
+        );
+        
+        if (lc $answer eq 'cancel') {
+            disableAll(0);
+            return;
+        }
+        
+        my $error = undef;
+        make_path($output_dir_val, {error => \$error});
+        if ($error and @$error) {
+            errorBox("Error creating output directory:\n" . join("\n", @$error));
+            return;
+        }
+    }
 
-    my $driver = Driver::create($input_dir, $output_dir, $project_name);
+    my $driver = Driver::create($input_dir, $output_dir_val, $project_name);
     if ($driver->hasErrors()) {
-        errorBox(join("\n", @{$driver->{errorStrings}}));
+        errorBox("Error building:\n" . join("\n", @{$driver->{errorStrings}}));
         return;
     }
 
@@ -134,21 +169,24 @@ sub build {
 }
 
 # Add the selectors
-createInput($main, 'SigmaStudio export to use:',
+$params_file = createInput($main, 'SigmaStudio export to use:',
     sub {
-        my $select = $main->FileSelect();
-        $select->configure(
-            -defaultextension => 'params',
-            -filelabel => 'Please select the .params-file from the SigmaStudio export.',
+        my $types = [
+            ['SigmaStudio Parameters File', '.params'],
+            ['All Files',                    '*']
+        ];
+        my $file = $main->getOpenFile(
+            -filetypes => $types,
+            -title => "Select SigmaStudio export"
         );
-        $params_file = $select->Show();
-        return $params_file;
+        $file = undef if defined $file and $file eq "";
+        return $file;
     });
 
-createInput($main, 'Where to save the plugin:',
+$output_dir = createInput($main, 'Where to save the plugin:',
     sub {
-        $output_dir = $main->chooseDirectory();
-        return $output_dir;
+        my $dir = $main->chooseDirectory();
+        return $dir;
     });
 
 # add buttons
@@ -194,8 +232,9 @@ sub mkLabel {
 }
 
 mkLabel('white', join("\n",
-        "This is the aurora-tool GUI v$version, by archi.",
-        'Source and Issue tracker: https://github.com/archi/aurora-tool',
+        "This is the aurora-tool GUI v$Tools::version",
+        "Source and Issue tracker: $Tools::url",
+        $Tools::copyright, 
         'I am not affiliated with the FreeDSP project.'));
 
 mkLabel('red', join("\n",
@@ -203,11 +242,5 @@ mkLabel('red', join("\n",
         'I am not responsible for any damage caused by this software or its output!',
     ));
 
-my $parameter = shift;
-if (defined $parameter and $parameter eq "--version") {
-    print $version;
-    exit 0;
-}
-
-print "This is aurora-tool GUI v$version\n";
+print "This is aurora-tool GUI v$Tools::version\n";
 MainLoop();

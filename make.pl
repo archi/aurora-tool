@@ -11,7 +11,7 @@ BEGIN {
     $lib_path = $bin . "src/lib";
 }
 use lib $lib_path;
-use Driver;
+use Tools;
 
 my $base = "aurora-tool";
 my $exe;
@@ -19,7 +19,7 @@ my @zip;
 my @pp;
 my $sep;
 
-my $version = Driver::version();
+my $version = $Tools::version;
 print "Version: $version\n";
 my $zip_file="$base-$version";
 

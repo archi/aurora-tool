@@ -16,8 +16,7 @@ This is my take at a tool to automatically generate Aurora Plugins from SigmaStu
 
 v0.2: XML Hell
 
-1. Parse the XML File and create an internal datastructure
-1. Dump the internal data structure in a JSON file (for later use with HTML/JS Interface)
+1. Parse the XML File and create necessary internal datastructures
 
 v0.3: XOs
 

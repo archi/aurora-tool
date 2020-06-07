@@ -42,4 +42,9 @@ sub find {
     return undef;
 }
 
+sub debugString {
+    my $self = shift;
+    return "(" . $self->{name} . ", " . $self->{type} .")";
+}
+
 1;

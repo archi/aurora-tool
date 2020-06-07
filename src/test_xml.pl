@@ -32,11 +32,11 @@ sub error {
     return undef;
 }
 
-ParseParams::parse("../test/8channels/8channels.params");
-NetParser::parse("../test/8channels/8channels_NetList.xml");
+my $dsp = "HomeCinema71";
+ParseParams::parse("../test/$dsp/$dsp.params");
+NetParser::parse("../test/$dsp/${dsp}_NetList.xml");
+Net::postProcess();
 
-for my $i (1..8) {
-    Net::debugLine($i);
-}
+Net::debugLine(0);
 
 exit 0;

@@ -8,6 +8,9 @@ use ParseParams;
 use WritePluginIni;
 use Assembler;
 use Tools;
+use NetParser;
+use Net;
+use CollectedData;
 
 sub logError {
     my $self = shift;
@@ -99,46 +102,43 @@ sub create {
 
 sub doEverything {
     my $self = shift;
-    return 0 if $self->hasErrors();
-    return 0 if not $self->parseParams();
-    # TODO parse NetList.xml
 
-    # TODO build model and so on
+#    return 0 if $self->hasErrors();
+#    return 0 if not $self->parseParams();
+#    return 0 if not $self->parseNetList();
+#
+#    Net::postProcess();
+#    Net::detectCrossovers($self->{params});
+#
+#    return 0 if not $self->buildDspFw();
+#    return 0 if not $self->buildPluginIni();
+#    return 1;
+    my $data = CollectedData::new();
 
-    return 0 if not $self->buildDspFw();
-    return 0 if not $self->buildPluginIni();
-    return 1;
-}
-
-sub parseParams {
-    my $self = shift;
     my $params_file = $self->{input_dir} . $self->{project_name} . ".params";
-    my $params = ParseParams::parse($params_file);
-    if (not defined $params) {
+    if (not ParseParams::parse($params_file, $data)) {
         logError("Could not parse '$params_file'");
         return 0;
     }
-    $self->{params} = $params;
-    return 1;
-}
-
-sub buildDspFw {
-    my $self = shift;
+    
+#    my $xml_file = $self->{input_dir} . $self->{project_name} . "_NetList.xml";
+#    if (not NetParser::parse($xml_file)) {
+#        logError("Could not parse XML '$xml_file'");
+#        return 0;
+#    }
+    
     my $dsp_file = $self->{output_dir}."dsp.fw";
     if (not Assembler::assemble($self->{input_dir}, $dsp_file)) {
         logError("Coult not assemble '$dsp_file'");
         return 0;
     }
-    return 1;
-}
-
-sub buildPluginIni {
-    my $self = shift;
+    
     my $pluginini = $self->{output_dir}."plugin.ini";
-    if (not WritePluginIni::write($pluginini, $self->{params})) {
+    if (not WritePluginIni::write($pluginini, $data->{result_for_pluginini})) {
         logError("Could not generate '$pluginini'");
         return 0;
     }
+
     return 1;
 }
 

@@ -18,7 +18,7 @@ sub parse {
     my $xml = XML::LibXML::Reader->new(location => $xml_file);
     
     if (not $xml) {
-        main::error("Error parsing NetList XML!\n");
+        main::error("Error parsing NetList XML!");
         return 0;
     }
 
@@ -29,11 +29,6 @@ sub parse {
     }
 
     return $stopParsing ? 0 : 1;
-}
-
-sub printNode {
-    my $xml = shift;
-    printf "%d %d %s %d\n", ($xml->depth, $xml->nodeType, $xml->name, $xml->isEmptyElement);
 }
 
 sub skipNonElements {
@@ -49,7 +44,9 @@ sub parseError {
     while (my $x = shift) {
         $str .= " " . $x;
     }
-    main::error($str);
+    # TODO pass the error to the user
+    # main::error($str);
+    print $str, "\n";
     $stopParsing = 1;
 }
 
@@ -58,25 +55,24 @@ sub parseAlgorithm {
 
     # We expect to enter with the opening tag, e.g.
     # <Algorithm name="..." friendlyname="..." cell="Phase 1 ">
-    my $cell = $xml->getAttribute("cell") or return parseError($xml, "Algorithm-tag is missing attribute 'cell'!\n");
+    my $cell = $xml->getAttribute("cell") or return parseError($xml, "Algorithm-tag is missing attribute 'cell'!");
     $cell = Tools::normalize($cell);
     
-    print "$cell ", $xml->nodeType, "\n" if $verbose;
     my $algo = Net::addAlgo($cell);
 
     # Now come all the <Link pin="..." dir="(in|out)" link="Link123" />-tags
     while (not $stopParsing and $xml->read()) {
         skipNonElements($xml);
         last if $xml->name ne "Link";
-        my $dir = $xml->getAttribute("dir") or return parseError($xml, "Link-tag has no attribute 'dir'!\n");
-        my $id = $xml->getAttribute("link") or return parseError($xml, "Link-tag has no attribute 'link'!\n");
+        my $dir = $xml->getAttribute("dir") or return parseError($xml, "Link-tag has no attribute 'dir'!");
+        my $id = $xml->getAttribute("link") or return parseError($xml, "Link-tag has no attribute 'link'!");
         $id =~ s/^Link//;
         $algo->addLink($dir, int($id));
     }
 
     # we finish at the closing </Algorithm>:
     if ($xml->name ne "Algorithm") {
-        return parseError($xml, "Algorithm did not end on closing tag, but '", $xml->name, "' instead!\n");
+        return parseError($xml, "Algorithm did not end on closing tag, but '", $xml->name, "' instead!");
     }
 
     return $algo;

@@ -11,6 +11,8 @@ my %name_to_handler;
 sub parse {
     my $in_file = shift;
 
+    my $collectedData = shift;
+
     # the aim is to fill an output result hash with all the necessary data
     # my prototype plugininigen.pl would convert that to JSON, but the actual script will do other things with that
     # i use 'result' to avoid confusion with dsp 'output'
@@ -46,14 +48,29 @@ sub parse {
             my $type = undef;
             $type = $data{_handler}->(\%data, \%result_for_pluginini) if defined $data{_handler};
             if (defined $type) {
-                ParamNode::create(\%data, $type);
+                my $node = ParamNode::create(\%data, $type);
+
+                if (not $collectedData->addParamNode($node)) {
+                    if ($type eq "peq") {
+                        my $parentNode = $collectedData->findParamNode($node->{name});
+                        # Handle PEQ: Multiple addresses (one per band)
+                        push @{$parentNode->{additional_bands}}, $data{address};
+                    } else {
+                        # everything that's not a PEQ should have only a single address/node
+                        # TODO return 0
+                        die ("Error: Duplicate node '".$node->{name}."' in .params-file!\n");
+                    }
+                }
             }
             %data = ();
         }
     }
     close $IN;
 
-    return \%result_for_pluginini;
+    # Not needed in the future, but rely on it for now
+    $collectedData->{result_for_pluginini} = \%result_for_pluginini;
+
+    return 1;
 }
 
 # now we want to translate things like 

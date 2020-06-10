@@ -5,7 +5,7 @@ There is still a lot to do, but feel free to try it (just be careful).
 
 # Status
 
-##Working right now:
+## Working right now:
 
 1. Generate plugin.ini for 8channel & 4FIR (XO not yet supported -> no HomeCinema71)
 1. Assemble the dsp.fw
@@ -13,12 +13,12 @@ There is still a lot to do, but feel free to try it (just be careful).
 1. Build stand-alone Windows & Linux executables
 1. All necessary files are parsed (feel free to open Issues if parsing your input file fails)
 
-##Not yet supported:
+## Not yet supported:
 
 1. XO
 1. HTML page generation
 
-#Roadmap:
+# Roadmap:
 
 v0.2:
 

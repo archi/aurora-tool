@@ -21,6 +21,7 @@ use Getopt::Long;
 
 use ParseParams;
 use NetParser;
+use CollectedData;
 
 sub error {
     my $str = shift;
@@ -33,10 +34,10 @@ sub error {
 }
 
 my $dsp = "HomeCinema71";
-ParseParams::parse("../test/$dsp/$dsp.params");
-NetParser::parse("../test/$dsp/${dsp}_NetList.xml");
-Net::postProcess();
-
-Net::debugLine(0);
+my $data = CollectedData::new();
+ParseParams::parse("../test/$dsp/$dsp.params", $data);
+NetParser::parse("../test/$dsp/${dsp}_NetList.xml", $data);
+$data->postProcess();
+$data->debugLine(0);
 
 exit 0;

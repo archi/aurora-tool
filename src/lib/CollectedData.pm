@@ -15,15 +15,21 @@ sub new {
     # Data from param.ini:
     $self{paramNodes} = ();
     
-    # Data from NetList.xml
+    # Data from NetList.xml   
 
     # All nodes
     $self{netNodes} = ();
     
     # set of nodes, mps [1..8] -> (inputselect_[1..8].nx1-1)
-    $self{inputs} = ();
+    $self{inputs} = [];
     
     # maps numerical link id (from "link123") -> ("in" -> @incoming_algorithms, "out" -> @outgoing_algorithms)
+    # So the simple net
+    #  inputselect_1.nx1-1 --Link1--> peq_1 --Link2--> mastervolume
+    # generates:
+    #  attachedTo[1] = {"in" => [inputselect_1.nx1-1], "out" => [peq_1]}
+    #  attachedTo[2] = {"in" => [peq_1], "out" => [mastervolume]}
+    # (the elements are nodes from 'addAlgo')
     $self{attachedTo} = ();
     
     # just the single master volume node
@@ -36,23 +42,26 @@ sub new {
 sub addParamNode {
     my $self = shift;
     my $node = shift;
-    my $nodeName = $node->{name};
+    my $name = $node->{name};
 
-    return 0 if (defined $self->{paramNodes}->{$nodeName});
-    $self->{paramNodes}->{$nodeName} = shift;
+    return 0 if (defined $self->{paramNodes}->{$name});
+    $self->{paramNodes}->{$name} = $node;
     return 1;
 }
 
 sub findParamNode {
     my $self = shift;
     my $name = shift;
-    return undef if not defined $self->{paramNodes}->{$name};
+    if (not defined $self->{paramNodes}->{$name}) {
+        return undef;
+    }
     return $self->{paramNodes}->{$name};
 }
 
 sub addAlgo {
     my $self = shift;
     my $cell_name = shift;
+    
     my $algo = NetAlgo::new($cell_name, $self->findParamNode($cell_name));
     
     push @{$self->{netNodes}}, $algo;
@@ -170,8 +179,11 @@ sub debugLine {
     my @strs;
     foreach my $n (@{$self->generateSimpleLine($chn)}) {
         my @nstr;
+        push @nstr, $n->{cell};
         if (defined $n->{params}) {
             push @nstr, $n->{params}->debugString();
+        } elsif (my $x = $self->findParamNode($n->{cell})) {
+            push @nstr, $x;
         } else {
             push @nstr, "no_params";
         }

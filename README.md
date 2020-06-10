@@ -1,22 +1,29 @@
+# About Aurora-Tool
+
 This is my take at a tool to automatically generate Aurora Plugins from SigmaStudio Exports.
+There is still a lot to do, but feel free to try it (just be careful).
 
-**Working right now:**
+# Status
 
-1. Generate plugin.ini for 8channel & 4FIR (XO not yet supported)
+##Working right now:
+
+1. Generate plugin.ini for 8channel & 4FIR (XO not yet supported -> no HomeCinema71)
 1. Assemble the dsp.fw
-1. Simple GUI
+1. Basic, graphical user interface for the tool
 1. Build stand-alone Windows & Linux executables
+1. All necessary files are parsed (feel free to open Issues if parsing your input file fails)
 
-**Not supported:**
+##Not yet supported:
 
-0. XO
-0. HTML page generation
+1. XO
+1. HTML page generation
 
-**Roadmap:**
+#Roadmap:
 
-v0.2: XML Hell
+v0.2:
 
-1. Parse the XML File and create necessary internal datastructures
+1. Parse the XML File and create necessary internal datastructures [Done]
+1. Unified error handling, to allow reporting error to GUI users without a huge pain (currently, error messages only really end up on the console - which will be a problem if users with no console experience hit bugs)
 
 v0.3: XOs
 

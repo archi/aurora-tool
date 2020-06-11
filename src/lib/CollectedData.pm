@@ -105,6 +105,7 @@ sub getLinkNodes {
 
 sub postProcess {
     my $self = shift;
+    
     foreach my $i (0 .. (scalar(@{$self->{inputs}}) - 1)) {
         $self->markChannels(@{$self->{inputs}}[$i], $i, FORWARD);
     }
@@ -116,7 +117,12 @@ sub postProcess {
         foreach my $node_in (@{$incoming}) {
             $self->markChannels($node_in, $i, REVERSE);
         }
-        $i++;
+        $i++;    
+    }
+    
+    
+    foreach my $input (@{$self->{inputs}}) {
+       $self->classifyXOs($input);
     }
 }
 
@@ -129,23 +135,92 @@ sub markChannels {
     $self->visitNodesRecursive($node, $dir, sub {
             my $node = shift;
             push @{$node->{$dir == FORWARD ? "input_channels" : "output_channels"}}, $channel;
+            return 1;
     });
+}
+
+# mark XOs
+sub classifyXOs {
+    my $self = shift;
+    my $input = shift;
+    
+    my $channel_count = scalar @{$input->{output_channels}};
+    return if $channel_count < 2;
+    
+    my %input_data;
+    $input_data{channel_count} = $channel_count;
+    $input_data{followup_pass} = "xxx";
+    $input_data{depth} = "";
+    
+    $self->visitNodesRecursive($input, FORWARD, sub {
+        my $node = shift;
+        return undef if $node == $self->{masterVolume};
+        shift; # data, is undef
+        my $parent = shift;
+        
+        my %data;
+        foreach my $k (keys %{$parent}) {
+            $data{$k} = $parent->{$k};
+        }
+        $data{depth} .= "| ";
+        
+        my $channel_count = scalar @{$node->{output_channels}};
+        $data{channel_count} = $channel_count;
+        
+        if (not defined $node->{params}) {
+            # print $parent->{depth}, "...\n";
+            return \%data;
+        }
+        
+        # print
+            # $parent->{depth},
+            # $node->debugString(),
+            # " -> ";
+        
+        if ($node->{params}->{type} =~ m/^(h|l)p$/) {
+            my $ps = $parent->{followup_pass};
+            my $is_xo = 0;
+            if ($channel_count < $parent->{channel_count}) {
+                my $s = $node->{cell} . "";
+                $s =~ s/_\d+$/_/g;
+                $data{followup_pass} = $s;
+                $is_xo = 1;
+            } elsif ($node->{cell} =~ m/^$ps\d+$/){
+                $is_xo = 1;
+            }
+            
+            if ($is_xo == 1) {
+                $node->{params}->{type} = "xo" . $node->{params}->{type};
+                push @{$self->{result_for_pluginini}->{$node->{params}->{type}}}, $node->{params}->{address};
+            }
+        }
+        
+        # print $node->{params}->{type},
+            # "\n";
+        
+        return \%data;
+    }, undef, undef, \%input_data);
 }
 
 # node: node to start from
 # direction: FORWARD or REVERSE
-# map ($node, $data): the function to call on the node (return 0 to stop recursion, else 1)
+# map ($node, $data, $previous_return_value): the function to call on the node (return 0 to stop recursion, else 1)
 # follow ($next_node, $index_of_next_node, $data): the function to select which link to follow (optional, follows all links by default, return 0 not to follow)
 # data: additional data passed to map/selector
+# previous_return_value: data returned by parent call to map
 sub visitNodesRecursive {
     my $self = shift;
     my $node = shift;
     my $direction = shift;
     my $map = shift;
     my $follow = shift;
+    
     my $data = shift;
+    my $previous_return_value = shift;
 
-    return if not $map->($node, $data);
+    my $return_value = $map->($node, $data, $previous_return_value);
+    return if not defined $return_value;
+    
     my $index_of_next_node = -1;
     foreach my $link_id (@{$node->{$direction == FORWARD ? "link_out" : "link_in"}}) {
         my $d = $direction == FORWARD ? "out" : "in";
@@ -154,12 +229,10 @@ sub visitNodesRecursive {
         foreach my $next_node (@{$linked_nodes}) {
             $index_of_next_node++;
             next if defined $follow and not $follow->($index_of_next_node, $data);
-            $self->visitNodesRecursive($next_node, $direction, $map, $follow, $data); 
+            $self->visitNodesRecursive($next_node, $direction, $map, $follow, $data, $return_value); 
         }
     }
 }
-
-
 
 #
 # Debug & testing code below here
@@ -178,35 +251,7 @@ sub debugLine {
 
     my @strs;
     foreach my $n (@{$self->generateSimpleLine($chn)}) {
-        my @nstr;
-        push @nstr, $n->{cell};
-        if (defined $n->{params}) {
-            push @nstr, $n->{params}->debugString();
-        } elsif (my $x = $self->findParamNode($n->{cell})) {
-            push @nstr, $x;
-        } else {
-            push @nstr, "no_params";
-        }
-
-        if (defined $n->{input_channels}) {
-            push @nstr, 'cin=[' . join(',', @{$n->{input_channels}}) . ']';
-        } else {
-            push @nstr, 'cin=[?]';
-        }
-
-        if (defined $n->{output_channels}) {
-            push @nstr, 'cout=[' . join(',', @{$n->{output_channels}}) . ']';
-        } else {
-            push @nstr, 'cout=[?]';
-        }
-
-        push @nstr, 'lin='.scalar(@{$n->{link_in}});
-        push @nstr, 'lout='.scalar(@{$n->{link_out}});
-        
-        push @nstr, 'nin='.scalar(@{$n->{node_in}}) if defined $n->{node_in};
-        push @nstr, 'nout='.scalar(@{$n->{node_out}}) if defined $n->{node_out};
-    
-        push @strs, '{' . join('; ', @nstr) . '}';
+        push @strs, $n->debugString();
     }
     print "#$chn-> ", join ("\n  -> ", @strs), "\n"; 
 }

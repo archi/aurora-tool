@@ -9,17 +9,30 @@ sub write {
 
     # Generate the "nhp" and so on...
     # nxo has to be manually generated from xolp/xohp (once those are added automatically)
-    foreach my $key ("hp", "lshelv", "peq", "hshelv", "lp", "phase", "dly", "gain", "fir") {
+    my $nxo;
+    foreach my $key ("hp", "lshelv", "peq", "hshelv", "lp", "phase", "dly", "gain", "fir", "xolp", "xohp") {
         next if defined $result->{"n$key"};
         $result->{"n$key"} = 0;
         next if not defined $result->{$key};
-        if ($key =~ m/^(lp|hp)$/) {
-            $result->{"n$key"} = scalar @{$result->{$key}} / 4;
+        if ($key =~ m/^(xo)?(lp|hp)$/) {
+            my $x = scalar @{$result->{$key}} / 4;
+            $result->{"n$key"} = $x;
         } else {
             $result->{"n$key"} = scalar @{$result->{$key}};
         }
     }
 
+    if (defined $result->{nxolp} or defined $result->{nxohp}) {
+        die "Missmatch between number of XOLP (".
+        (defined $result->{nxolp} ? $result->{nxolp} : 0)
+        .") and number of XOHP (".
+        (defined $result->{nxohp} ? $result->{nxohp} : 0)
+        .")!" if not defined $result->{nxolp} or not defined $result->{nxohp} or $result->{nxolp} != $result->{nxohp};
+        
+        $result->{nxo} = $result->{nxolp};
+        $result->{nxolp} = undef;
+        $result->{nxohp} = undef;
+    }
 
     open my $OUT, ">$out_file" or die "Could not open '$out_file' for writing: $!\n";
 
@@ -32,6 +45,7 @@ sub write {
     my $bad = 0;
     my $first = 1; 
     foreach my $k (sort keys %{$result}) {
+        next if not defined $result->{$k};
         print $OUT ",\n" if not $first;
         $first = 0;
         

@@ -22,6 +22,7 @@ use Getopt::Long;
 use ParseParams;
 use NetParser;
 use CollectedData;
+use WritePluginIni;
 
 sub error {
     my $str = shift;
@@ -38,6 +39,7 @@ my $data = CollectedData::new();
 ParseParams::parse("../test/$dsp/$dsp.params", $data);
 NetParser::parse("../test/$dsp/${dsp}_NetList.xml", $data);
 $data->postProcess();
-$data->debugLine(0);
+WritePluginIni::write("../test/$dsp/plugin.ini", $data->{result_for_pluginini});
+
 
 exit 0;

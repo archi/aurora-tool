@@ -27,7 +27,7 @@ sub create {
 
 sub debugString {
     my $self = shift;
-    return "(" . $self->{name} . ", " . $self->{type} .")";
+    return "(" . $self->{name} . ", " . $self->{type} .", " . $self->{address} .")";
 }
 
 1;

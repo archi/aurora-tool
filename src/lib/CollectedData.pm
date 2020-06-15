@@ -124,6 +124,8 @@ sub postProcess {
     foreach my $input (@{$self->{inputs}}) {
        $self->classifyXOs($input);
     }
+    $self->purgeXOdups("lp");
+    $self->purgeXOdups("hp");
 }
 
 sub markChannels {
@@ -133,13 +135,37 @@ sub markChannels {
     my $dir = shift;
 
     $self->visitNodesRecursive($node, $dir, sub {
-            my $node = shift;
-            push @{$node->{$dir == FORWARD ? "input_channels" : "output_channels"}}, $channel;
-            return 1;
+        my $node = shift;
+        push @{$node->{$dir == FORWARD ? "input_channels" : "output_channels"}}, $channel;
+        return 1;
     });
 }
 
-# mark XOs
+sub purgeXOdups {
+    my $self = shift;
+    my $pass = shift;
+    
+    my %is_xo;
+    foreach my $id (@{$self->{result_for_pluginini}->{"xo" . $pass}}) {
+        $is_xo{$id} = 1;
+    }
+    
+    my @new_array;
+    foreach my $id (@{$self->{result_for_pluginini}->{$pass}}) {
+        if (defined $is_xo{$id} and $is_xo{$id} == 1) {
+            next;
+        }
+        push @new_array, $id;
+    }
+    
+    $self->{result_for_pluginini}->{$pass} = \@new_array;
+}
+
+# mark XOs and put them in the result_for_pluginini data
+# this causes the XO's HPs+LPs to be duplicated:
+#  * once in the result_for_pluginini->{xo?p}, and
+#  * once in the result_for_pluginini->{?p} array
+# The purgeXOdups later removes the dups from the {?p} arrays
 sub classifyXOs {
     my $self = shift;
     my $input = shift;

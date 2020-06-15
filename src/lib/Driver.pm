@@ -9,7 +9,7 @@ use WritePluginIni;
 use Assembler;
 use Tools;
 use NetParser;
-use Net;
+use NetAlgo;
 use CollectedData;
 
 sub logError {
@@ -121,11 +121,13 @@ sub doEverything {
         return 0;
     }
 
-#    my $xml_file = $self->{input_dir} . $self->{project_name} . "_NetList.xml";
-#    if (not NetParser::parse($xml_file)) {
-#        logError("Could not parse XML '$xml_file'");
-#        return 0;
-#    }
+    my $xml_file = $self->{input_dir} . $self->{project_name} . "_NetList.xml";
+    if (not NetParser::parse($xml_file, $data)) {
+        logError("Could not parse XML '$xml_file'");
+        return 0;
+    }
+    
+    $data->postProcess();
 
     my $dsp_file = $self->{output_dir}."dsp.fw";
     if (not Assembler::assemble($self->{input_dir}, $dsp_file)) {

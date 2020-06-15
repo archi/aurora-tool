@@ -88,7 +88,7 @@ sub create {
             return \%self;
         }
     }
-    
+
     $self{project_name} = $project_name;
 
     # Check for the necessary files:
@@ -120,19 +120,19 @@ sub doEverything {
         logError("Could not parse '$params_file'");
         return 0;
     }
-    
+
 #    my $xml_file = $self->{input_dir} . $self->{project_name} . "_NetList.xml";
 #    if (not NetParser::parse($xml_file)) {
 #        logError("Could not parse XML '$xml_file'");
 #        return 0;
 #    }
-    
+
     my $dsp_file = $self->{output_dir}."dsp.fw";
     if (not Assembler::assemble($self->{input_dir}, $dsp_file)) {
         logError("Coult not assemble '$dsp_file'");
         return 0;
     }
-    
+
     my $pluginini = $self->{output_dir}."plugin.ini";
     if (not WritePluginIni::write($pluginini, $data->{result_for_pluginini})) {
         logError("Could not generate '$pluginini'");

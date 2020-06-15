@@ -11,18 +11,18 @@ use constant ANY => 2;
 
 sub new {
     my %self;
-    
+
     # Data from param.ini:
     $self{paramNodes} = ();
-    
-    # Data from NetList.xml   
+
+    # Data from NetList.xml
 
     # All nodes
     $self{netNodes} = ();
-    
+
     # set of nodes, mps [1..8] -> (inputselect_[1..8].nx1-1)
     $self{inputs} = [];
-    
+
     # maps numerical link id (from "link123") -> ("in" -> @incoming_algorithms, "out" -> @outgoing_algorithms)
     # So the simple net
     #  inputselect_1.nx1-1 --Link1--> peq_1 --Link2--> mastervolume
@@ -31,10 +31,10 @@ sub new {
     #  attachedTo[2] = {"in" => [peq_1], "out" => [mastervolume]}
     # (the elements are nodes from 'addAlgo')
     $self{attachedTo} = ();
-    
+
     # just the single master volume node
     $self{masterVolume} = undef;
-    
+
     bless \%self;
     return \%self;
 }
@@ -61,17 +61,17 @@ sub findParamNode {
 sub addAlgo {
     my $self = shift;
     my $cell_name = shift;
-    
+
     my $algo = NetAlgo::new($cell_name, $self->findParamNode($cell_name));
-    
+
     push @{$self->{netNodes}}, $algo;
-    
+
     if ($cell_name =~ m/inputselect_([0-9]+)\.nx1-1$/) {
         @{$self->{inputs}}[$1 - 1] = $algo;
     } elsif ($cell_name eq "mastervolume") {
         $self->{masterVolume} = $algo;
     }
-    
+
     return $algo;
 }
 
@@ -97,7 +97,7 @@ sub getLinkNodes {
     my $dir = shift;
     $dir = "out" if $dir eq FORWARD;
     $dir = "in" if $dir eq REVERSE;
-    
+
     return undef if not defined @{$self->{attachedTo}}[$link_id];
     return undef if not defined @{$self->{attachedTo}}[$link_id]->{$dir};
     return @{$self->{attachedTo}}[$link_id]->{$dir};
@@ -105,7 +105,7 @@ sub getLinkNodes {
 
 sub postProcess {
     my $self = shift;
-    
+
     foreach my $i (0 .. (scalar(@{$self->{inputs}}) - 1)) {
         $self->markChannels(@{$self->{inputs}}[$i], $i, FORWARD);
     }
@@ -117,10 +117,10 @@ sub postProcess {
         foreach my $node_in (@{$incoming}) {
             $self->markChannels($node_in, $i, REVERSE);
         }
-        $i++;    
+        $i++;
     }
-    
-    
+
+
     foreach my $input (@{$self->{inputs}}) {
        $self->classifyXOs($input);
     }
@@ -144,12 +144,12 @@ sub markChannels {
 sub purgeXOdups {
     my $self = shift;
     my $pass = shift;
-    
+
     my %is_xo;
     foreach my $id (@{$self->{result_for_pluginini}->{"xo" . $pass}}) {
         $is_xo{$id} = 1;
     }
-    
+
     my @new_array;
     foreach my $id (@{$self->{result_for_pluginini}->{$pass}}) {
         if (defined $is_xo{$id} and $is_xo{$id} == 1) {
@@ -157,7 +157,7 @@ sub purgeXOdups {
         }
         push @new_array, $id;
     }
-    
+
     $self->{result_for_pluginini}->{$pass} = \@new_array;
 }
 
@@ -169,40 +169,40 @@ sub purgeXOdups {
 sub classifyXOs {
     my $self = shift;
     my $input = shift;
-    
+
     my $channel_count = scalar @{$input->{output_channels}};
     return if $channel_count < 2;
-    
+
     my %input_data;
     $input_data{channel_count} = $channel_count;
     $input_data{followup_pass} = "xxx";
     $input_data{depth} = "";
-    
+
     $self->visitNodesRecursive($input, FORWARD, sub {
         my $node = shift;
         return undef if $node == $self->{masterVolume};
         shift; # data, is undef
         my $parent = shift;
-        
+
         my %data;
         foreach my $k (keys %{$parent}) {
             $data{$k} = $parent->{$k};
         }
         $data{depth} .= "| ";
-        
+
         my $channel_count = scalar @{$node->{output_channels}};
         $data{channel_count} = $channel_count;
-        
+
         if (not defined $node->{params}) {
             # print $parent->{depth}, "...\n";
             return \%data;
         }
-        
+
         # print
             # $parent->{depth},
             # $node->debugString(),
             # " -> ";
-        
+
         if ($node->{params}->{type} =~ m/^(h|l)p$/) {
             my $ps = $parent->{followup_pass};
             my $is_xo = 0;
@@ -214,16 +214,16 @@ sub classifyXOs {
             } elsif ($node->{cell} =~ m/^$ps\d+$/){
                 $is_xo = 1;
             }
-            
+
             if ($is_xo == 1) {
                 $node->{params}->{type} = "xo" . $node->{params}->{type};
                 push @{$self->{result_for_pluginini}->{$node->{params}->{type}}}, $node->{params}->{address};
             }
         }
-        
+
         # print $node->{params}->{type},
             # "\n";
-        
+
         return \%data;
     }, undef, undef, \%input_data);
 }
@@ -240,13 +240,13 @@ sub visitNodesRecursive {
     my $direction = shift;
     my $map = shift;
     my $follow = shift;
-    
+
     my $data = shift;
     my $previous_return_value = shift;
 
     my $return_value = $map->($node, $data, $previous_return_value);
     return if not defined $return_value;
-    
+
     my $index_of_next_node = -1;
     foreach my $link_id (@{$node->{$direction == FORWARD ? "link_out" : "link_in"}}) {
         my $d = $direction == FORWARD ? "out" : "in";
@@ -255,7 +255,7 @@ sub visitNodesRecursive {
         foreach my $next_node (@{$linked_nodes}) {
             $index_of_next_node++;
             next if defined $follow and not $follow->($index_of_next_node, $data);
-            $self->visitNodesRecursive($next_node, $direction, $map, $follow, $data, $return_value); 
+            $self->visitNodesRecursive($next_node, $direction, $map, $follow, $data, $return_value);
         }
     }
 }
@@ -279,7 +279,7 @@ sub debugLine {
     foreach my $n (@{$self->generateSimpleLine($chn)}) {
         push @strs, $n->debugString();
     }
-    print "#$chn-> ", join ("\n  -> ", @strs), "\n"; 
+    print "#$chn-> ", join ("\n  -> ", @strs), "\n";
 }
 
 sub generateSimpleLine {

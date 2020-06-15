@@ -43,7 +43,7 @@ sub debugString {
 
     push @nstr, 'lin='.scalar(@{$n->{link_in}});
     push @nstr, 'lout='.scalar(@{$n->{link_out}});
-    
+
     push @nstr, 'nin='.scalar(@{$n->{node_in}}) if defined $n->{node_in};
     push @nstr, 'nout='.scalar(@{$n->{node_out}}) if defined $n->{node_out};
 

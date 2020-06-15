@@ -28,7 +28,7 @@ sub write {
         .") and number of XOHP (".
         (defined $result->{nxohp} ? $result->{nxohp} : 0)
         .")!" if not defined $result->{nxolp} or not defined $result->{nxohp} or $result->{nxolp} != $result->{nxohp};
-        
+
         $result->{nxo} = $result->{nxolp};
         $result->{nxolp} = undef;
         $result->{nxohp} = undef;
@@ -43,12 +43,12 @@ sub write {
 
     print $OUT "{\n";
     my $bad = 0;
-    my $first = 1; 
+    my $first = 1;
     foreach my $k (sort keys %{$result}) {
         next if not defined $result->{$k};
         print $OUT ",\n" if not $first;
         $first = 0;
-        
+
         print $OUT "\"$k\":";
         my $type = ref $result->{$k};
         if ($type eq "") {
@@ -89,7 +89,7 @@ sub write {
     print $OUT "\n}";
 
     close $OUT;
-    
+
     return 0 if $bad > 0;
     return 1;
 }

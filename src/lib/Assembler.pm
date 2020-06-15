@@ -43,7 +43,7 @@ sub write_dsp_fw {
     my $num_bytes = shift;
 
     open my $OUT, ">:raw", "$file" or die "Could not open dsp.fw file '$file' for writing: $!\n";
-    
+
     my $offset = 0;
     my $limit = scalar @{$tx_bytes};
     foreach my $num (@{$num_bytes}) {

@@ -12,11 +12,11 @@ my $verbose = 0;
 sub parse {
     my $xml_file = shift;
     my $collectedData = shift;
-    
+
     die "xml file does not exist\n" if not -f $xml_file;
 
     my $xml = XML::LibXML::Reader->new(location => $xml_file);
-    
+
     if (not $xml) {
         return parseError($xml, "Could not create XML Reader!");
     }
@@ -28,7 +28,7 @@ sub parse {
         # <Algorithm name="..." friendlyname="..." cell="Phase 1 ">
         my $cell = $xml->getAttribute("cell") or return parseError($xml, "Algorithm-tag is missing attribute 'cell'!");
         $cell = Tools::normalize($cell);
-        
+
         my $algo = $collectedData->addAlgo($cell);
 
         # Now come all the <Link pin="..." dir="(in|out)" link="Link123" />-tags

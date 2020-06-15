@@ -73,13 +73,13 @@ sub parse {
     return 1;
 }
 
-# now we want to translate things like 
+# now we want to translate things like
 # > Cell Name         = InputSelect_8.Nx1-1_UAC
 # > Parameter Name    = monomuxSigma300ns44index
 # > Parameter Address = 20413
 # > Parameter Value   = 7
 # > Parameter Data :
-# > 0x00, 0x00, 0x00, 0x07, 
+# > 0x00, 0x00, 0x00, 0x07,
 # into the correct format for plugin.ini
 # The aim is to do as much with pattern matching instead of hardcoding detectors.
 # so we build this map of pattern (on cell name) -> handler:
@@ -98,30 +98,30 @@ $name_to_handler{"InputSelect_(.)\.Nx1-1(.*)"} = sub {
     # address => Parameter Address
     # value => Parameter Value
     my $data = shift;
-    
+
     # Input could be any of "_Analog", "_UAC", "_ESP32" (ignored), "_Exp", "_SPDIF" and "" (= port)
     # Let's normalize that to the plugin.ini format:
     my $input_type = lc $data->{2};
     # "" is "port"
     $input_type = "port" if $input_type =~ m/^\s*$/;
-    
+
     $input_type =~ s/^_//;
-    
+
     # esp32 is ignored for now
     return undef if $input_type eq "esp32";
 
     # get the result parameter to fill it
     my $result = shift;
-        
+
     # now we have analog, uac, exp, spdif and port -- these are also the names used in the plugin.ini
     # check if the corresponding array already exists in the output hash, if not, create it:
     $result->{$input_type} = [] if not defined $result->{$input_type};
-    
+
     # now put the address at the correct location in the array
     # and remember, the channel in InputSelect_$$CHANNEL$$ counts from 1 to 8, the array from 0 to 7
     my $channel = int($data->{1});
     $result->{$input_type}[$channel - 1] = $data->{address};
-    
+
     # last but not least, the input select tells us how many channels we have
     # make sure this is consistent with whatever we know (or use it as initial knowledge)
     if (not defined $result->{nchn} or $result->{nchn} < $channel) {
@@ -166,10 +166,10 @@ $name_to_handler{"(L|H)P([0-9]+)_([0-9]+)"} = sub {
     # the high passes have 5 parameter addresses each
     # we're interested in the lowest one, with the name ending in B2_1
     # (i'm not 100% sure on that, so we'll check the address to be safe)
-    
+
     my $pass = ($data->{1} eq "L") ? "lp" : "hp";
     $result->{$pass} = [] if (not defined $result->{$pass});
-    
+
     # we compute the array index from HPx_y
     # e.g.:
     #  0: HP1_1
@@ -178,7 +178,7 @@ $name_to_handler{"(L|H)P([0-9]+)_([0-9]+)"} = sub {
     #  3: HP1_4
     #  4: HP2_1
     my $idx = 4 * (int($data->{2}) - 1) + int($data->{3}) - 1;
-    
+
     # name ending in B2_1 => add the value
     if ($data->{name} =~ m/B2_1$/) {
         $result->{$pass}[$idx] = $data->{address};
@@ -196,7 +196,7 @@ $name_to_handler{"(Low Shelv|High Shelv|Phase) ([0-9]+)"} = sub {
     # the shelfs also have 5 parameter addresses each
     # we're interested in the lowest one, with the name ending in B2_1
     # (i'm not 100% sure on that, so we'll check the address to be safe)
-    
+
     my $arr = undef;
     if (($data->{1} eq "Low Shelv")) {
         $arr = "lshelv";
@@ -205,13 +205,13 @@ $name_to_handler{"(Low Shelv|High Shelv|Phase) ([0-9]+)"} = sub {
     } elsif (($data->{1} eq "Phase")) {
         $arr = "phase";
     }
-    
+
     die "Internal error" if not defined $arr;
     $result->{$arr} = [] if (not defined $result->{$arr});
-    
+
     # index for "Low Shelv x" is probably (x - 1)
     my $idx = (int($data->{2}) - 1);
-    
+
     # name ending in B2_1 => add the value
     if ($data->{name} =~ m/B2_1$/) {
         $result->{$arr}[$idx] = $data->{address};
@@ -226,11 +226,11 @@ $name_to_handler{"(Low Shelv|High Shelv|Phase) ([0-9]+)"} = sub {
 $name_to_handler{"(Delay|Gain|FIR) ?([0-9]+)"} = sub {
     my $data = shift;
     my $result = shift;
-    
+
     # delay's name is 'DelaySigma300Alg1delay', and Gain 'HWGainADAU145XAlg2target'
     # filter out 'HWGainADAU145XAlg2slew_mode'
     return if $data->{name} =~ m/slew_mode$/;
-    
+
     my $arr = undef;
     if (($data->{1} eq "Delay")) {
         $arr = "dly";
@@ -239,10 +239,10 @@ $name_to_handler{"(Delay|Gain|FIR) ?([0-9]+)"} = sub {
     } elsif (($data->{1} eq "FIR")) {
         $arr = "fir";
     }
-    
+
     die "Internal error" if not defined $arr;
     $result->{$arr} = [] if (not defined $result->{$arr});
-    
+
     my $idx = (int($data->{2}) - 1);
     $result->{$arr}[$idx] = $data->{address};
     return $arr;
@@ -268,9 +268,9 @@ $name_to_handler{"Param EQ ([0-9]+)"} = sub {
     # and so on for all the other bands
     # NOW, careful: I'm doing this because I want to have 15 bands per PEQ in the first two channels, and for the test
     #  i do not care. so we just push them into the array and hope the order in the params-file is what we want in the output array :(
-    
+
     return undef if (not $data->{name} =~ m/^.*300Alg[0-9]+B2_([0-9])+$/);
-    
+
     $result->{peq} = [] if (not defined $result->{peq});
     push @{$result->{peq}}, $data->{address};
     return "peq";

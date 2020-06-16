@@ -46,22 +46,27 @@ sub write {
     my $first = 1;
     foreach my $k (sort keys %{$result}) {
         next if not defined $result->{$k};
-        print $OUT ",\n" if not $first;
-        $first = 0;
-
-        print $OUT "\"$k\":";
         my $type = ref $result->{$k};
         if ($type eq "") {
-            print $OUT $result->{$k};
+            print $OUT ",\n" if not $first;
+            $first = 0;
+            
+            print $OUT "\"$k\":", $result->{$k};
         } elsif ($type eq "ARRAY") {
             my $cnt = scalar @{$result->{$k}};
+            next if $cnt == 0;
+            
+            print $OUT ",\n" if not $first;
+            $first = 0;
+            print $OUT "\"$k\":[";
+            
             my $insert_line_break = 4096;
             my $prefix = "";
             if ($cnt > $nchn and $cnt % $nchn == 0) {
                 $insert_line_break = $cnt / $nchn;
                 $prefix = sprintf("%".(length($k)+4)."s", "");
             }
-            print $OUT "[";
+            
             my $afirst = 1;
             foreach my $a (@{$result->{$k}}) {
                 if ($insert_line_break == 0) {

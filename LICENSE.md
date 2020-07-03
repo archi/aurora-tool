@@ -1,3 +1,8 @@
+# Different licenses!
+
+Assets taken from the freeDSP-aurora project retain their CC-BY-SA 4.0
+license. The license here only applies to the source code.
+
 ### GNU GENERAL PUBLIC LICENSE
 
 Version 3, 29 June 2007

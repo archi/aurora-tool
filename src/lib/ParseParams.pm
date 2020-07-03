@@ -24,6 +24,33 @@ use ParamNode;
 # This contains all the patterns + functions to parse a single type of "Cell Name"
 # It's filed later in this file (after all the subs)
 my %name_to_handler;
+    
+sub handle {
+    my $handler = shift;
+    return if not defined $handler;
+
+    my $data = shift;
+    my $collectedData = shift;
+
+    my $type = undef;
+    $type = $handler->($data, $collectedData->{result_for_pluginini});
+    return if not defined $type;
+    
+    my $node = ParamNode::create($data, $type);
+
+    if (not $collectedData->addParamNode($node)) {
+        if ($type eq "peq") {
+            my $parentNode = $collectedData->findParamNode($node->{name});
+            # Handle PEQ: Multiple addresses (one per band)
+            push @{$parentNode->{additional_bands}}, $data->{address};
+        } else {
+            # everything that's not a PEQ should have only a single address/node
+            # TODO return 0
+            die ("Error: Duplicate node '".$node->{name}."' in .params-file!\n");
+        }
+    }
+
+}
 
 sub parse {
     my $in_file = shift;
@@ -35,9 +62,13 @@ sub parse {
     # i use 'result' to avoid confusion with dsp 'output'
     my %result_for_pluginini;
 
+    # Not needed in the future, but rely on it for now
+    $collectedData->{result_for_pluginini} = \%result_for_pluginini;
+
     # Open the file, and parse it
     open my $IN, "<$in_file" or die "Could not open '$in_file' for reading: $!\n";
     my %data;
+    my $handler = undef;
     my @name_to_handler_ptrns = keys %name_to_handler;
     while (my $line = <$IN>) {
         next unless $line =~ m/^(Cell Name|Parameter Name|Parameter Address|Parameter Value)\s+=\s*(.*)$/;
@@ -47,11 +78,14 @@ sub parse {
         $key = lc $key;
         $key =~ s/^parameter_//;
         $param =~ s/\s*$//g;
-        $data{$key} = $key eq "address" ? int($param) : $param;
         if ($key eq "cell_name") {
+            handle($handler, \%data, $collectedData);
+            %data = ();
+            $handler = undef;
+            
             foreach my $ptrn (@name_to_handler_ptrns) {
-                if ($param =~ m/^$ptrn$/) {
-                    $data{_handler} = $name_to_handler{$ptrn};
+                if ($param =~ m/^$ptrn$/i) {
+                    $handler = $name_to_handler{$ptrn};
                     $data{1} = $1 if defined $1;
                     $data{2} = $2 if defined $2;
                     $data{3} = $3 if defined $3;
@@ -61,31 +95,12 @@ sub parse {
                     # add more if necessary
                 }
             }
-        } elsif ($key eq "value") {
-            my $type = undef;
-            $type = $data{_handler}->(\%data, \%result_for_pluginini) if defined $data{_handler};
-            if (defined $type) {
-                my $node = ParamNode::create(\%data, $type);
-
-                if (not $collectedData->addParamNode($node)) {
-                    if ($type eq "peq") {
-                        my $parentNode = $collectedData->findParamNode($node->{name});
-                        # Handle PEQ: Multiple addresses (one per band)
-                        push @{$parentNode->{additional_bands}}, $data{address};
-                    } else {
-                        # everything that's not a PEQ should have only a single address/node
-                        # TODO return 0
-                        die ("Error: Duplicate node '".$node->{name}."' in .params-file!\n");
-                    }
-                }
-            }
-            %data = ();
         }
+        $data{$key} = $key eq "address" ? int($param) : $param;
     }
     close $IN;
-
-    # Not needed in the future, but rely on it for now
-    $collectedData->{result_for_pluginini} = \%result_for_pluginini;
+            
+    handle($handler, \%data, $collectedData);
 
     return 1;
 }
@@ -153,7 +168,7 @@ $name_to_handler{"MasterVolume"} = sub {
     my $data = shift;
     # we have Parameter Name HWGainADAU145XAlg9target and HWGainADAU145XAlg9slew_mode
     # 8channel uses the '...target' variant, so we do the same here:
-    return if not $data->{name} =~ m/^HWGainADAU.*target$/;
+    return undef if not $data->{name} =~ m/^HWGainADAU.*target$/;
     my $result = shift;
     if (not defined ($result->{master})) {
         $result->{master} = $data->{address};
@@ -246,7 +261,7 @@ $name_to_handler{"(Delay|Gain|FIR) ?([0-9]+)"} = sub {
 
     # delay's name is 'DelaySigma300Alg1delay', and Gain 'HWGainADAU145XAlg2target'
     # filter out 'HWGainADAU145XAlg2slew_mode'
-    return if $data->{name} =~ m/slew_mode$/;
+    return undef if $data->{name} =~ m/slew_mode$/;
 
     my $arr = undef;
     if (($data->{1} eq "Delay")) {

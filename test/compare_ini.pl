@@ -10,9 +10,6 @@ die "need a reference plugin.ini as 1st param\n" if not defined $ref;
 die "need a plugin.ini to check as 2nd param\n" if not defined $new;
 die "expecting exactly two parameters\n" if defined shift;
 
-print "Reference: $ref\n";
-print "To check: $new\n";
-
 sub load_ini {
     my $ini = shift;
     my %data;
@@ -25,10 +22,9 @@ sub load_ini {
     while (my $line = <$fh>) {
         $line_c++;
         
-        # skip comments
-        if ($line =~ m/^\s*#/) {
-            next;
-        }
+        # skip comments and empty lines
+        next if ($line =~ m/^\s*#/);
+        next if ($line =~ m/^\s*$/);
 
         # parse the key
         if ($line =~ s/^"([^"]+)"://) {
@@ -78,8 +74,11 @@ sub load_ini {
 }
 
 # parse the two inputs
-my $dnew = load_ini($new);
+print "Reference: $ref\n";
 my $dref = load_ini($ref);
+print "To check: $new\n";
+my $dnew = load_ini($new);
+
 my $error_c = 0;
 
 # now check that everything from the reference is also in the script output

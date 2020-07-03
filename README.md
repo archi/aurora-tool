@@ -19,7 +19,6 @@ There is still a lot to do, but feel free to try it (just be careful).
 
 # Roadmap:
 
-1. Add FIR
 1. Unified error handling, to allow reporting error to GUI users without a huge pain (currently, error messages only really end up on the console - which will be a problem if users with no console experience hit bugs)
 1. Write a layout engine that produces a JSON file for later use
 1. Should display the generated layout (using dummy widgets)

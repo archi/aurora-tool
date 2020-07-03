@@ -31,13 +31,6 @@ for x in `ls $in/`; do
         continue
     fi
 
-    # fir filter from 4FIRs is not yet supported!
-    if [ "$x" == "4FIRs" ]; then
-        echo "!!!! 4FIRs is not supported -> test disabled!!!!"
-        continue
-    fi
-
-
     p="$in/$x"
     ref="$in.ref/$x"
 
@@ -58,6 +51,13 @@ for x in `ls $in/`; do
     fi
     
     rm "$tmp" -rf || rm "$tmp/*" -f || exit 1
+    echo ""
+    echo ""
 done
 
+if [ "$error" == "0" ]; then
+    echo "Finished with no errors :)"
+else
+    echo "FINISHED WITH ERRORS !! :("
+fi
 exit $error

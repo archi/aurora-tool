@@ -5,6 +5,7 @@ use warnings;
 use Cwd;
 use File::Path "remove_tree";
 use File::Copy;
+use File::Copy::Recursive "dircopy";
 my $lib_path;
 BEGIN {
     my $bin = $0;
@@ -68,15 +69,19 @@ if (defined $lib_dir) {
     }
 }
 
+dircopy("src${sep}assets", $dir . $sep . "assets") or die "Could not copy assets: $!\n";
+copy("LICENSE.md", $dir . $sep . "license.txt") or die "Could not copy license: $!\n";
+copy("README.md", $dir . $sep . "readme.txt") or die "Could not copy readme: $!\n";
+
 # build exe:
 push @pp,
-	"-o", $dir . $sep . $exe,
+	"--output", $dir . $sep . $exe,
 	"src${sep}gui.pl",
 	"--lib", "src${sep}lib",
-	"-M", "Driver",
-	"-M", "Tk::Bitmap",
-	"-g",
-	"-z", "1";
+	"--module", "Driver",
+	"--module", "Tk::Bitmap",
+	"--gui",
+	"--compress", "6";
 
 print "Packaging '$exe'...\n";
 system(@pp) == 0 or die "Error running pp: $?\n";

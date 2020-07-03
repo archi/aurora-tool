@@ -21,7 +21,7 @@ use strict;
 use warnings;
 
 our $sep = $^O eq "MSWin32" ? "\\" : "/";
-our $version = "0.1.3-1-alpha";
+our $version = "0.1.4-alpha";
 our $url = "https://github.com/archi/aurora-tool";
 our $copyright = "(c) 2020 Sebastian 'archi' Meyer, licensed under GPLv3";
 

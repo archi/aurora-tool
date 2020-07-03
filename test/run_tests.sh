@@ -25,8 +25,21 @@ echo "Using converter: $conv"
 tmp=test-tmp
 error=0
 
-    p="aurora-2.0.3-plugins/8channels"
-    ref="aurora-2.0.3-plugins.ref/8channels"
+in="aurora-2.0.3-plugins"
+for x in `ls $in/`; do
+    if [ ! -d "$in/$x" ]; then
+        continue
+    fi
+
+    # fir filter from 4FIRs is not yet supported!
+    if [ "$x" == "4FIRs" ]; then
+        echo "!!!! 4FIRs is not supported -> test disabled!!!!"
+        continue
+    fi
+
+
+    p="$in/$x"
+    ref="$in.ref/$x"
 
     rm "$tmp" -rf || rm "$tmp/*" -f || exit 1
     mkdir -p "$tmp" || exit 1
@@ -34,10 +47,17 @@ error=0
     echo "==[ $p ]=="
     $perl $conv --in "$p" --out "$tmp"
     if [ "$?" != "0" ]; then
-        echo "=====> ERROR in conversion!"
+        echo "=====> ERROR during conversion!"
         error=1
     fi
 
     $perl compare_ini.pl "$ref/plugin.ini" "$tmp/plugin.ini"
+    if [ "$?" != "0" ]; then
+        echo "=====> ERROR while checking against reference!"
+        error=1
+    fi
+    
+    rm "$tmp" -rf || rm "$tmp/*" -f || exit 1
+done
 
 exit $error

@@ -1,4 +1,6 @@
-/* This file is part of freeDSP-aurora, licensed under CC-BY-SA */
+/* This file based on part of freeDSP-aurora, licensed under CC-BY-SA 
+ * Contributions by Sebastian Meyer
+ */
 body{
   padding-left: 20px;
   background-color: #101010;
@@ -265,7 +267,7 @@ height: 100%;
 .d_gain{border-top-color:#FC527F;}
 
 .rotate{
-transform:rotate(-90deg);
+/*transform:rotate(-90deg);*/
 height:60px;
 }
 

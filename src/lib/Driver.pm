@@ -28,6 +28,7 @@ use Tools;
 use NetParser;
 use NetAlgo;
 use CollectedData;
+use File::Copy "copy";
 
 sub logError {
     my $self = shift;
@@ -156,6 +157,10 @@ sub doEverything {
     if (not WritePluginIni::write($pluginini, $data->{result_for_pluginini})) {
         logError("Could not generate '$pluginini'");
         return 0;
+    }
+
+    foreach my $file ("dsp.html", "dark.css") {
+        copy($main::assets_path . $Tools::sep . $file, $self->{output_dir}.$file) or logError("Could not copy '$file': $!\n");
     }
 
     return 1;

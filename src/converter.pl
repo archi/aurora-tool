@@ -24,11 +24,13 @@ use warnings;
 # Find the library path, and allow loading libs from there
 use Cwd;
 my $lib_path;
+our $assets_path;
 BEGIN {
     my $bin = $0;
     $bin = getcwd . "/$bin" if $bin =~ m@^\./@;
     $bin =~ s@[^/\\]*\.pl$@@;
     $lib_path = $bin . "lib";
+    $assets_path = $bin . "assets";
 }
 use lib $lib_path;
 

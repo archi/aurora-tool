@@ -36,6 +36,56 @@ sub new {
     return \%algo;
 }
 
+# check if a node belongs to a channel
+# this does not include nodes which trivially belong to a channel!
+#   e.g. in0 -> NODE -> out0
+# this will be returned false for channel 0!
+sub belongsToChannel {
+    my $n = shift;
+    my $chn = shift;
+    # if NO affected output channel is part of the input channels,
+    # we "assign" a node to belong to the first channel in its input channel list
+    foreach my $out (@{$n->{output_channels}}) {
+        foreach my $in (@{$n->{input_channels}}) {
+            return 0 if $in == $out;
+        }
+    }
+
+    return "$chn" eq $n->{input_channels}[0];
+}
+
+sub equalChannels {
+    my $self = shift;
+    my $other = shift;
+
+    my $n_in = scalar @{$self->{input_channels}};
+    return 0 if $n_in != scalar @{$other->{input_channels}};
+
+    my $n_out = scalar @{$self->{output_channels}};
+    return 0 if $n_out != scalar @{$other->{output_channels}};
+
+    $n_in--;
+    foreach my $i (0..$n_in) {
+        return 0 if @{$self->{input_channels}}[$i] ne @{$other->{input_channels}}[$i];
+    }
+
+    $n_out--;
+    foreach my $i (0..$n_out) {
+        return 0 if @{$self->{output_channels}}[$i] ne @{$other->{output_channels}}[$i];
+    }
+
+    return 1;
+}
+
+sub affectsChannel {
+    my $n = shift;
+    my $chn = shift;
+    foreach my $n_chn (@{$n->{output_channels}}) {
+        return 1 if $n_chn == $chn;
+    }
+    return 0;
+}
+
 sub debugString {
     my $n = shift;
     my @nstr;

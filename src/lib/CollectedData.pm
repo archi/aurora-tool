@@ -247,10 +247,11 @@ sub classifyXOs {
 
 # node: node to start from
 # direction: FORWARD or REVERSE
-# map ($node, $data, $previous_return_value): the function to call on the node (return 0 to stop recursion, else 1)
+# map ($node, $data, $previous_return_value): the function to call on the node (return undef to stop recursion, else anything else)
 # follow ($next_node, $index_of_next_node, $data): the function to select which link to follow (optional, follows all links by default, return 0 not to follow)
 # data: additional data passed to map/selector
 # previous_return_value: data returned by parent call to map
+# not_first: used internally, do not pass from external call!
 sub visitNodesRecursive {
     my $self = shift;
     my $node = shift;
@@ -260,6 +261,12 @@ sub visitNodesRecursive {
 
     my $data = shift;
     my $previous_return_value = shift;
+
+    # capture corner case: the first node might already be uninteresting
+    my $not_first = shift;
+    if (not $not_first) {
+        return if defined $follow and not $follow->($node, 0, $data, undef);
+    }
 
     my $return_value = $map->($node, $data, $previous_return_value);
     return if not defined $return_value;
@@ -271,8 +278,8 @@ sub visitNodesRecursive {
         next if not defined $linked_nodes;
         foreach my $next_node (@{$linked_nodes}) {
             $index_of_next_node++;
-            next if defined $follow and not $follow->($index_of_next_node, $data);
-            $self->visitNodesRecursive($next_node, $direction, $map, $follow, $data, $return_value);
+            next if defined $follow and not $follow->($next_node, $index_of_next_node, $data, $return_value);
+            $self->visitNodesRecursive($next_node, $direction, $map, $follow, $data, $return_value, 1);
         }
     }
 }

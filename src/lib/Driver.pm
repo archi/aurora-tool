@@ -28,6 +28,7 @@ use Tools;
 use NetParser;
 use NetAlgo;
 use CollectedData;
+use Layouter;
 use File::Copy "copy";
 
 sub logError {
@@ -121,16 +122,6 @@ sub create {
 sub doEverything {
     my $self = shift;
 
-#    return 0 if $self->hasErrors();
-#    return 0 if not $self->parseParams();
-#    return 0 if not $self->parseNetList();
-#
-#    Net::postProcess();
-#    Net::detectCrossovers($self->{params});
-#
-#    return 0 if not $self->buildDspFw();
-#    return 0 if not $self->buildPluginIni();
-#    return 1;
     my $data = CollectedData::new();
 
     my $params_file = $self->{input_dir} . $self->{project_name} . ".params";
@@ -156,6 +147,12 @@ sub doEverything {
     my $pluginini = $self->{output_dir}."plugin.ini";
     if (not WritePluginIni::write($pluginini, $data->{result_for_pluginini})) {
         logError("Could not generate '$pluginini'");
+        return 0;
+    }
+
+    my $layout_js = $self->{output_dir}."layout.js";
+    if (not Layouter::generate($layout_js, $data)) {
+        logError("Could not generate '$layout_js'");
         return 0;
     }
 

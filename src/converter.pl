@@ -85,7 +85,7 @@ if ($driver->hasErrors()) {
     exit 1;
 }
 
-print "\nScript finished without detected errors. Remember to ALWAYS review the output."; 
+print "\nScript finished without detected errors. Remember to ALWAYS review the output.\n\n"; 
 print "This script (and the result) come with no warranty for correctness. If this kills your speakers or DSP, it is your fault for not properly reviewing the output!\n";
 
 exit 0;

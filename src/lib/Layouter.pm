@@ -27,6 +27,65 @@ use constant BRANCH => 1;
 use constant BELOW => 0;
 use constant ABOVE => 1;
 
+sub generate {
+    my $layout_js = shift;
+    my $data = shift;
+
+    my $grid = createGrid();
+
+    # create the basic grid
+    # right now, branching to the same channel,
+    #  (e.g. XO to PEQ for LFE and FIR for HF; then merge again)
+    #  is not properly handled...
+    foreach my $channel (0 .. (scalar(@{$data->{inputs}}) - 1)) {
+        print "Input $channel\n";
+        my $line = $grid->addLine();
+        $grid->addNodesToLine($data, @{$data->{inputs}}[$channel], $channel, $line);
+    }
+
+    # I suppose there must be instances where this loops forever?
+    while($grid->alignBranches()) {
+        print "Updated alignment...\n";
+    }
+
+    $grid->export($layout_js);
+
+    return 1;
+}
+
+sub export {
+    my $self = shift;
+
+    print "var dsplines = [\n";
+    my $line_idx = 0;
+    while ($line_idx < $self->{next_line}) {
+        print ",\n" if $line_idx > 0;
+        print "  [";
+        my $line_arr = @{$self->{line_items}}[$line_idx];
+        my $el_cnt = scalar @{$line_arr};
+        my $el_idx = 0;
+        while ($el_idx < $el_cnt) {
+            print ", " if $el_idx > 0;
+            $self->exportElement(
+                $self->{line_items}[$line_idx][$el_idx],
+                $self->{line_items_types}[$line_idx][$el_idx]);
+            ++$el_idx;
+        }
+        print "\n  ]";
+        ++$line_idx;
+    }
+
+    print "\n];\n";
+
+}
+
+sub exportElement {
+    my $self = shift;
+    my $el = shift;
+    my $type = shift;
+    print "\n    ", ($type == BRANCH ? "BR" : "  "), $el->{virtual_index_in_line}, ":", $el->debugString();
+}
+
 sub addNodesToLine {
     my $grid = shift;
     my $data = shift;
@@ -46,14 +105,14 @@ sub addNodesToLine {
             shift; # undefined data
             my $previous_node = shift;
             return 1 if not defined $previous_node;
-            
+
             # end on master volume
             return undef if $next_node == $data->{masterVolume};
-            
+
             # check if we're branching to another channel
             if (not $next_node->affectsChannel($channel) and not $next_node->equalChannels($previous_node)) {
                 $grid->insertBranchAfterNode($line, $previous_node, $next_node);
-                
+
                 if (not $next_node->belongsToChannel($channel)) {
                     print "  !! ($index_of_next_node) not following to $next_node = ",$next_node->debugString(),"\n";
                     return undef;
@@ -66,7 +125,7 @@ sub addNodesToLine {
                 # so if a node only has the current channel as input, but affects another channel:
                 #  add that as a new line below the current line
                 #  (the offset will be later correct in the alignment code)
-                
+
                 print "  ** ($index_of_next_node) following branch to $next_node = ",$next_node->debugString(),"\n";
                 my $sub_line = $grid->insertLineAfter($line);
                 $grid->appendNode($sub_line, $next_node);
@@ -85,21 +144,8 @@ sub addNodesToLine {
         });
 }
 
-sub generate {
-    my $layout_js = shift;
-    my $data = shift;
-
-    my $grid = createGrid();
-
-    # create the basic grid
-    # right now, branching to the same channel,
-    #  (e.g. XO to PEQ for LFE and FIR for HF)
-    #  is not properly handled...
-    foreach my $channel (0 .. (scalar(@{$data->{inputs}}) - 1)) {
-        print "Input $channel\n";
-        my $line = $grid->addLine();
-        $grid->addNodesToLine($data, @{$data->{inputs}}[$channel], $channel, $line);
-    }
+sub alignBranches {
+    my $self = shift;
 
     #
     # align branches, e.g. if we have a grid
@@ -112,15 +158,83 @@ sub generate {
     #   B1 -> B2 -\-> B3
     # (B3 is later filled up)
     #
-    my $had_change = 1;
-    while (not $had_change) {
-        # TODO this is we're I am at:
-        # 1. iterate over all nodes
-        # 2. if the above is found, update all nodes' virtual_index_in_line to match up
-        # 3. repeat until no more changes are found
+
+    # 1. iterate over all nodes
+    # 2. if the above is found, update all nodes' virtual_index_in_line to match up
+    # 3. repeat until no more changes are found (handled by call-site while non-zero value is returned)
+
+    # 1. iterate
+    my $line_idx = 0;
+    while ($line_idx < $self->{next_line}) {
+        my $line_arr = @{$self->{line_items}}[$line_idx];
+        my $el_cnt = scalar @{$line_arr};
+        my $el_idx = 0;
+        while ($el_idx < $el_cnt) {
+            # check if the current element is followed by branches, and gather the maximum virtual id
+            my $max_virt = $self->nodeBranchMaxVirtualIndex($line_idx, $el_idx, $el_cnt);
+            if (defined $max_virt) {
+                return 1 if $self->fixupVirtualIndices($line_idx, $el_idx, $el_cnt, $max_virt) > 0;
+            }
+
+            ++$el_idx;
+        }
+
+        ++$line_idx;
+
     }
 
-    return 1;
+    # nothing changed -> return 0 to break the loop
+    return 0;
+}
+
+sub fixupVirtualIndices {
+    my $self = shift;
+    my $line_idx = shift;
+    my $el_idx = shift;
+    my $el_cnt = shift;
+    my $max = shift;
+
+    my $fixes = 0;
+    while ($el_idx < $el_cnt) {
+        my $el = $self->{line_items}[$line_idx][$el_idx];
+        if ($el->{virtual_index_in_line} < $max) {
+            $self->increaseVirtualIndex($el, $max - $el->{virtual_index_in_line});
+            ++$fixes;
+        }
+        last if ($self->{line_items_types}[$line_idx][$el_idx] == NODE);
+        $el_idx++;
+    }
+    return $fixes;
+}
+
+sub increaseVirtualIndex {
+    my $self = shift;
+    my $el = shift;
+    my $inc_by = shift;
+    my $el_line = $el->{belongs_to_line};
+    my $el_idx = $el->{index_in_line};
+    my $el_cnt = scalar @{$self->{line_items}[$el_line]};
+
+    while ($el_idx < $el_cnt) {
+        $self->{line_items}[$el_line][$el_idx]->{virtual_index_in_line} += $inc_by;
+        ++$el_idx;
+    }
+}
+
+sub nodeBranchMaxVirtualIndex {
+    my $self = shift;
+    my $line_idx = shift;
+    my $el_idx = shift;
+    my $el_cnt = shift;
+
+    my $max = 0;
+    while ($el_idx < $el_cnt) {
+        my $el_virt_idx = $self->{line_items}[$line_idx][$el_idx]->{virtual_index_in_line};
+        $max = $el_virt_idx if not defined $max or $el_virt_idx > $max;
+        return $max if ($self->{line_items_types}[$line_idx][$el_idx] == NODE);
+        $el_idx++;
+    }
+    return undef;
 }
 
 sub createGrid {
@@ -146,7 +260,7 @@ sub appendNode {
     } else {
         $item->{index_in_line} = scalar @{$self->{line_items}[$line]};
     }
-    
+
     $item->{virtual_index_in_line} = $item->{index_in_line};
     $item->{belongs_to_line} = $line;
 
@@ -173,9 +287,9 @@ sub insertBranchAfterNode {
 sub addLine {
     my $self = shift;
     my $id = $self->{next_line};
-    
+
     $self->{next_line}++;
-    
+
     push @{$self->{line_order}}, $id;
 
     return $id;

@@ -150,11 +150,12 @@ sub doEverything {
         return 0;
     }
 
-    my $layout_js = $self->{output_dir}."layout.js";
-    if (not Layouter::generate($layout_js, $data)) {
-        logError("Could not generate '$layout_js'");
-        return 0;
-    }
+    # disable for 0.1.4
+    #my $layout_js = $self->{output_dir}."layout.js";
+    #if (not Layouter::generate($layout_js, $data)) {
+    #    logError("Could not generate '$layout_js'");
+    #    return 0;
+    #}
 
     foreach my $file ("dsp.html", "dark.css") {
         copy($main::assets_path . $Tools::sep . $file, $self->{output_dir}.$file) or logError("Could not copy '$file': $!\n");

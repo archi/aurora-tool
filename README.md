@@ -5,6 +5,8 @@ There is still a lot to do, but feel free to try it (just be careful).
 
 # Status
 
+Not tested with Aurora Firmware 2.1.x, yet!
+
 ## Working right now:
 
 1. Generate plugin.ini for the three example plugins
